@@ -177,13 +177,16 @@ class MmiControl:
         message = [0x70, 0x11]
         self.write(message)
 
-    def update(self, mmiCallback):
+    def update(self, mmiCallback, receivedDataCallback=None):
+        self._buffer = [0x00 for _ in range(self._bufferSize)]
+        nr_of_bytes = 0
         while (self._serial.in_waiting > 0 and self._readIndex < self._bufferSize):
             data = self._serial.read()
             data = struct.unpack('B', data)[0]
 
             self._buffer[self._readIndex] = data
             self._readIndex += 1
+            nr_of_bytes += 1
 
             # Detect packet start
             if (self._startIndex == -1):
@@ -218,15 +221,11 @@ class MmiControl:
                 localChecksum = 0
                 for i in range(self._startIndex - 2, self._endIndex + 2):
                     localChecksum += self._buffer[i]
-
+                localChecksum = localChecksum & 0xFF # truncate to one byte
                 if (localChecksum == remoteChecksum):
                     self.ack()
                     payloadSize = self._endIndex - self._startIndex
-
-                    payload = [0x00 for _ in range(payloadSize)]
-                    for i in range(payloadSize):
-                        payload[i] = self._buffer[self._startIndex+i]
-
+                    payload = [self._buffer[self._startIndex+i] for i in range(payloadSize)]
                     self.serialEvent(payload, mmiCallback)
 
                 self._startIndex = -1
@@ -237,6 +236,10 @@ class MmiControl:
                 self._startIndex = -1
                 self._endIndex = -1
                 self._readIndex = 0
+
+        if (not receivedDataCallback is None):
+            raw_data = [self._buffer[i] for i in range(nr_of_bytes)]
+            receivedDataCallback(raw_data)
 
         # Update button states
         for i in range(self._assignedButtonCount):
@@ -263,6 +266,10 @@ class MmiControl:
     _endIndex = -1
     _readIndex = 0
 
+    def write_raw(self, data):
+        self._serial.write(data)
+        self._serial.flush()  
+
     def write(self, data):
         length = len(data)
         message = [0x00 for _ in range(length + 5)]
@@ -275,7 +282,7 @@ class MmiControl:
 
         message[2+length] = 0x10
         message[3+length] = 0x03
-        message[4+length] = checksum
+        message[4+length] = checksum & 0xFF # truncate to one byte
         self._serial.write(message)
         self._serial.flush()
 
@@ -289,29 +296,32 @@ class MmiControl:
         if (data[0] == 0x79 and length > 1):
             if (data[1] == 0x38 or data[1] == 0xff):
                 mmiCallback(data[1])
-
+                return
         # unknown ...
         elif (data[0] == 0x35):
             # ... but it comes as return to the activation sequence 70 12
             # data package only has this byte ... however the user might want to use it as trigger:
             mmiCallback(data[0])
-
+            return
         # a button has been pressed
         elif ((data[0] == 0x30 or data[0] == 0x31) and length > 1):
             mmiCallback(data[0], data[1])
             for i in range(self._assignedButtonCount):
                 self._buttons[i].updateTrigger(data[1], data[0] == 0x30)
-
+            return
         # the small wheel has been turned
         elif ((data[0] == 0x40 or data[0] == 0x41) and length > 1):
             ammount = data[1] * (1 if data[0] == 0x40 else -1)
             mmiCallback(data[0], data[1])
             for i in range(self._assignedWheelCount):
                 self._wheels[i].turn(0x40, ammount)
-
+            return
         # the big wheel has been turned
         elif ((data[0] == 0x50 or data[0] == 0x51) and length > 1):
             ammount = data[1] * (1 if data[0] == 0x50 else -1)
             mmiCallback(data[0], data[1])
             for i in range(self._assignedWheelCount):
                 self._wheels[i].turn(0x50, ammount)
+            return
+        
+        mmiCallback(None, data)

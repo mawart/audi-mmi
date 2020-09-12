@@ -4,7 +4,7 @@
         {
             "label": "copyOnPi",
             "type": "shell",
-            "command": "scp ${workspaceFolder}/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi" //; scp -r ${workspaceFolder}/mmi/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi/mmi; scp -r ${workspaceFolder}/mmi/components/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi/mmi/components"
+            "command": "scp ${workspaceFolder}/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi; scp -r ${workspaceFolder}/mmi/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi/mmi; scp -r ${workspaceFolder}/mmi/components/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi/mmi/components"
         },
         {
             "label": "startOnPi",
