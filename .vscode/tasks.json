@@ -1,0 +1,34 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "copyOnPi",
+            "type": "shell",
+            "command": "scp ${workspaceFolder}/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi" //; scp -r ${workspaceFolder}/mmi/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi/mmi; scp -r ${workspaceFolder}/mmi/components/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi/mmi/components"
+        },
+        {
+            "label": "startOnPi",
+            "type": "shell",
+            "command": "ssh ${config:sshUser}@${config:sshEndpoint} 'nohup python3 -m ptvsd --host 0.0.0.0 --port 5678 --wait ~/audi-mmi/${fileBasename} > /dev/null 2>&1 &'"
+        },
+        {
+            "label": "wait",
+            "type": "shell",
+            "command": "timeout 5"
+        },
+        {
+            "label": "copyAndStartOnPi",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "copyOnPi",
+                "startOnPi",
+                "wait"
+            ]
+        },
+        {
+            "label": "cleanupOnPi",
+            "type": "shell",
+            "command": "ssh ${config:sshUser}@${config:sshEndpoint} 'pkill -9 python'"
+        },
+    ]
+}
