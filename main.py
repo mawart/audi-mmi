@@ -7,11 +7,11 @@ import RPi.GPIO as GPIO
 ACC_12V_INPUT_PIN = 10 # GPIO 10, PIN 19, HIGH = 12V ON, LOW = 12V OFF
 PI_ON_OUTPUT_PIN = 11 # GPIO 11, PIN 23, HIGH = Raspberry Pi ON, LOW = Raspberry Pi OFF
 
-UART3 = '/dev/ttyAMA2' # RXD3 = GPIO 5, PIN 29, TXD3 = GPIO 4, PIN 7
-UART4 = '/dev/ttyAMA3' # RXD4 = GPIO 9, PIN 21, TXD4 = GPIO 8, PIN 24
-UART5 = '/dev/ttyAMA4' # RXD5 = GPIO 13, PIN 33, TXD5 = GPIO 12, PIN 32
+UART3 = '/dev/ttyAMA1' # RXD3 = GPIO 5, PIN 29, TXD3 = GPIO 4, PIN 7
+UART4 = '/dev/ttyAMA2' # RXD4 = GPIO 9, PIN 21, TXD4 = GPIO 8, PIN 24
+UART5 = '/dev/ttyAMA3' # RXD5 = GPIO 13, PIN 33, TXD5 = GPIO 12, PIN 32
 
-
+GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM) # Use "GPIO" pin numbering
 GPIO.setup(ACC_12V_INPUT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(PI_ON_OUTPUT_PIN, GPIO.OUT)
@@ -48,7 +48,8 @@ mmiMediaLight = mmiControl.createLight(MmiLightIds.MEDIA)
 
 acc_12v_on_timestamp = time.time()
 GPIO.output(PI_ON_OUTPUT_PIN, GPIO.HIGH) # signal Pi has booted and is up and running
-while True:
+shutdown = False
+while not shutdown:
     mmiControl.update(mmiEvent)
 
     if (GPIO.input(ACC_12V_INPUT_PIN)):
@@ -58,7 +59,7 @@ while True:
     if (time.time() - acc_12v_on_timestamp > 5):
         # if acc has been off for 5 seconds initiate shutdown
         # this timeout prevents unintended shutdowns when power is turned off and on in short succession
-        shut_down()
+        shutdown = True
 
     if (mmiSmallWheel.wasTurned()):
         if (mmiSmallWheel.getAmount() < 0):
@@ -67,5 +68,7 @@ while True:
         else:
             # turned right
             pass
+    
+    time.sleep(0.1) # run every 100ms to prevent taking too much CPU
 
-GPIO.cleanup()
+shut_down()
