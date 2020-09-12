@@ -1,6 +1,6 @@
-from components.mmiButton import MmiButtonInput, MmiButton
-from components.mmiWheel import MmiWheel
-from components.mmiLight import MmiLight
+from mmi.components.mmiButton import MmiButtonInput, MmiButton
+from mmi.components.mmiWheel import MmiWheel
+from mmi.components.mmiLight import MmiLight
 import struct
 import serial
 
