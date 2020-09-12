@@ -1,3 +1,5 @@
+from mmi.components.button import Button
+
 class MmiButtonInput:
   # public:
     def __init__(self, buttonId):
@@ -15,9 +17,10 @@ class MmiButtonInput:
     _state = False
 
 
-class MmiButton:
+class MmiButton(Button):
   # public:
     def __init__(self, input):
+        Button.__init__(self, input)
         self._input = input
 
     def updateTrigger(self, buttonId, newState):
