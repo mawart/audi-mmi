@@ -4,15 +4,17 @@ import time
 from util import shut_down
 import RPi.GPIO as GPIO
 
-ACC_12V_INPUT = 10 # GPIO 10, PIN 19, HIGH = 12V ON, LOW = 12V OFF
-PI_ON_OUTPUT = 11 # GPIO 11, PIN 23, HIGH = Raspberry Pi ON, LOW = Raspberry Pi OFF
+ACC_12V_INPUT_PIN = 10 # GPIO 10, PIN 19, HIGH = 12V ON, LOW = 12V OFF
+PI_ON_OUTPUT_PIN = 11 # GPIO 11, PIN 23, HIGH = Raspberry Pi ON, LOW = Raspberry Pi OFF
 
 UART3 = '/dev/ttyAMA2' # RXD3 = GPIO 5, PIN 29, TXD3 = GPIO 4, PIN 7
 UART4 = '/dev/ttyAMA3' # RXD4 = GPIO 9, PIN 21, TXD4 = GPIO 8, PIN 24
 UART5 = '/dev/ttyAMA4' # RXD5 = GPIO 13, PIN 33, TXD5 = GPIO 12, PIN 32
 
-GPIO.setup(ACC_12V_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(PI_ON_OUTPUT, GPIO.OUT)
+
+GPIO.setmode(GPIO.BCM) # Use "GPIO" pin numbering
+GPIO.setup(ACC_12V_INPUT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(PI_ON_OUTPUT_PIN, GPIO.OUT)
 
 mmiControl = MmiControl(port=UART5, bufferSize=16,
                         buttonCount=17, wheelCount=2)
@@ -45,11 +47,11 @@ mmiSmallWheel = mmiControl.createWheel(MmiWheelIds.SMALL_WHEEL)
 mmiMediaLight = mmiControl.createLight(MmiLightIds.MEDIA)
 
 acc_12v_on_timestamp = time.time()
-GPIO.output(PI_ON_OUTPUT, GPIO.HIGH) # signal Pi has booted and is up and running
+GPIO.output(PI_ON_OUTPUT_PIN, GPIO.HIGH) # signal Pi has booted and is up and running
 while True:
     mmiControl.update(mmiEvent)
 
-    if (GPIO.input(ACC_12V_INPUT)):
+    if (GPIO.input(ACC_12V_INPUT_PIN)):
         # reset timestamp in acc is on
         acc_12v_on_timestamp = time.time()
 
