@@ -28,8 +28,9 @@ def printAsHex(message, data):
     print(message, [hex(d) for d in data])
 
 def mmiDataReceived(data):
-    printAsHex('data received', data)
-    mmiControl2.write_raw(data)
+    if (len(data) > 0):
+        printAsHex('data received', data)
+        mmiControl2.write_raw(data)
 
 def mmiEvent(event, data):
     if (event == MmiEvents.ACC_12V_ON or event == MmiEvents.POWER_BTN_PRESSED):
