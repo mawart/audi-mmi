@@ -19,3 +19,6 @@ Add te following lines to enable uarts 3-5
 
 # Tools
 https://pimylifeup.com/raspberry-pi-visual-studio-code/
+
+# Remote Debugging
+https://www.linkedin.com/pulse/python-remote-debugging-visual-studio-code-raspberry-pi-mircea-dogaru/
