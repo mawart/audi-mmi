@@ -3,6 +3,8 @@ from mmi.mmiControl import EVENT_DESCRIPTIONS, BTN_DESCRIPTIONS, WHEEL_DESCRIPTI
 import time
 from util import shut_down
 import RPi.GPIO as GPIO
+import serial
+import struct
 
 breakpoint()  # force remote debugger to properly attach
 
@@ -24,17 +26,88 @@ mmiControl2 = MmiControl(port=UART4, bufferSize=16,
 mmiControl = MmiControl(port=UART5, bufferSize=16,
                         buttonCount=17, wheelCount=2)
 
+mmiUnit_serial = serial.Serial(
+    port=UART3,
+    baudrate=9600,
+    stopbits=serial.STOPBITS_TWO,
+    parity=serial.PARITY_NONE,
+    bytesize=serial.EIGHTBITS
+)
+
+mmiUnitEvent = {
+    0xfe: 'off',
+    0xfa: 'on'
+}
+mmiUnitLights = {
+    0xe6: 'INFO',
+    0xf3: 'INFO',
+    0xea: 'NAV',
+    0xf5: 'NAV',
+    0xde: 'SETUP',
+    0xef: 'SETUP',
+    0xee: 'TEL',
+    0xf7: 'TEL',
+    0xf2: 'NAME',
+    0xf9: 'NAME',
+    0xf6: 'MEDIA',
+    0xfb: 'MEDIA',
+    0xe2: 'CAR',
+    0xf1: 'CAR',
+    0x9e: 'RADIO',
+    0xcf: 'RADIO'
+}
+
+def update():
+    serial_data = []
+    while (mmiUnit_serial.in_waiting > 0):
+        data = mmiUnit_serial.read()
+        data = struct.unpack('B', data)[0]
+        serial_data.append(data)
+    
+    length = len(serial_data)
+    if(length > 0):    
+        if(serial_data[0] == 0x67 and length > 1 and serial_data[1] == 0x5e):
+            remainder = [serial_data[i] for i in range(4, length)]
+            print('mmi unit mode switch', mmiUnitEvent[serial_data[2]], mmiUnitLights[serial_data[3]] if serial_data[3] in mmiUnitLights else hex(serial_data[3]), asHex(remainder))
+        else:
+            print_debug('mmi unit data received', asHex(serial_data))
+
 def asHex(data):
     return [hex(d) for d in data]
 
+
+def print_debug(*argv):
+    # print(argv)
+    pass
+
+
 def mmiSerialDataReceived(serial_data):
     serial_data_hex = asHex(serial_data)
-    print('data received', serial_data_hex)
+    print_debug('data received', serial_data_hex)
+    # forward the received control data to the mmi unit
+    # mmiControl2.write_raw(serial_data)
+    if (len(serial_data) > 4):
+        event = serial_data[2]
+        payload = serial_data[3]
+        if ((event == MmiEvents.BTN_PRESSED or event == MmiEvents.BTN_RELEASED) and payload == MmiButtonIds.NAV):
+            print('Nav button event -> forwarded as Media button to mmi unit')
+            mmiControl2.write([event, MmiButtonIds.MEDIA])
+            return
+
+    print_debug('data forwarded to mmi unit')
     # forward the received control data to the mmi unit
     mmiControl2.write_raw(serial_data)
 
+
 def mmiEvent(event, payload, serial_data):
     serial_data_hex = asHex(serial_data)
+    # if ((event == MmiEvents.BTN_PRESSED or event == MmiEvents.BTN_RELEASED) and payload == MmiButtonIds.NAV):
+    #     print('Nav button event -> remapping to Media button')
+    #     mmiControl2.write([event, MmiButtonIds.MEDIA])
+    # else:
+    #     print('data forwarded to mmi unit')
+    #     # forward the received control data to the mmi unit
+    #     mmiControl2.write_raw(serial_data)
 
     if (event == MmiEvents.ACC_12V_ON or event == MmiEvents.POWER_BTN_PRESSED):
         mmiControl.enableKeys()
@@ -46,22 +119,24 @@ def mmiEvent(event, payload, serial_data):
         mmiControl.setHighlightLevel(0x99)
 
     if (event == MmiEvents.BTN_PRESSED or event == MmiEvents.BTN_RELEASED):
-        print(BTN_DESCRIPTIONS[payload],
-              EVENT_DESCRIPTIONS[event], serial_data_hex)
+        print_debug(BTN_DESCRIPTIONS[payload],
+                    EVENT_DESCRIPTIONS[event], serial_data_hex)
 
     elif (event == MmiEvents.SMALL_WHEEL_ROTATED_LEFT or event == MmiEvents.SMALL_WHEEL_ROTATED_RIGHT or
           event == MmiEvents.BIG_WHEEL_ROTATED_LEFT or event == MmiEvents.BIG_WHEEL_ROTATED_RIGHT):
-        print(EVENT_DESCRIPTIONS[event], 'by %d' % (payload), serial_data_hex)
+        print_debug(EVENT_DESCRIPTIONS[event],
+                    'by %d' % (payload), serial_data_hex)
 
     elif (event in EVENT_DESCRIPTIONS):
-        print(EVENT_DESCRIPTIONS[event], serial_data_hex)
+        print_debug(EVENT_DESCRIPTIONS[event], serial_data_hex)
 
     else:
         print('unknown event', serial_data_hex)
 
-mmiNavButton = mmiControl.createButton(MmiButtonIds.NAV)
-mmiSmallWheel = mmiControl.createWheel(MmiWheelIds.SMALL_WHEEL)
-mmiMediaLight = mmiControl.createLight(MmiLightIds.MEDIA)
+# mmiNavButton = mmiControl.createButton(MmiButtonIds.NAV)
+# mmiSmallWheel = mmiControl.createWheel(MmiWheelIds.SMALL_WHEEL)
+# mmiMediaLight = mmiControl.createLight(MmiLightIds.MEDIA)
+
 
 acc_12v_on_timestamp = time.time()
 # signal Pi has booted and is up and running
@@ -69,6 +144,7 @@ GPIO.output(PI_ON_OUTPUT_PIN, GPIO.HIGH)
 shutdown = False
 while not shutdown:
     mmiControl.update(mmiEvent, mmiSerialDataReceived)
+    update()
 
     if (GPIO.input(ACC_12V_INPUT_PIN)):
         # reset timestamp in acc is on
@@ -79,15 +155,15 @@ while not shutdown:
         # this timeout prevents unintended shutdowns when power is turned off and on in short succession
         shutdown = True
 
-    if (mmiSmallWheel.wasTurned()):
-        if (mmiSmallWheel.getAmount() < 0):
-            # turned left
-            pass
-        else:
-            # turned right
-            pass
+    # if (mmiSmallWheel.wasTurned()):
+    #     if (mmiSmallWheel.getAmount() < 0):
+    #         # turned left
+    #         pass
+    #     else:
+    #         # turned right
+    #         pass
 
-    time.sleep(0.1)  # run every 100ms to reduce CPU load
+    # time.sleep(0.1)  # run every 100ms to reduce CPU load
 
 # initiate shutdown
 shut_down()
