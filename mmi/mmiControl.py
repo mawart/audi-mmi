@@ -246,13 +246,12 @@ class MmiControl:
                 self._endIndex = -1
                 self._readIndex = 0
 
-        # if serial data has been received, but no packet was detected signal the serial event with a dummy payload
-        if (len(serial_data) > 0 and len(payload) == 0):
-            payload = [0x00, 0x00]
-            self.serialEvent(payload, serial_data, mmiCallback)
-
         if (len(serial_data) > 0 and not receivedDataCallback is None):
             receivedDataCallback(serial_data)
+
+        # if serial data has been received, but no packet was detected signal the serial event with a dummy payload
+        if (len(serial_data) > 0 and len(payload) == 0):
+            self.serialEvent([0x00, 0x00], serial_data, mmiCallback)
 
         # Update button states
         for i in range(self._assignedButtonCount):
@@ -306,7 +305,7 @@ class MmiControl:
     def serialEvent(self, payload, serial_data, mmiCallback):
         length = len(payload)
         # power on or volume button pushed initially
-        if (payload[0] == 0x79 and length > 1 and payload[1] == 0x38 or payload[1] == 0xff):
+        if (payload[0] == 0x79 and length > 1 and (payload[1] == 0x38 or payload[1] == 0xff)):
             mmiCallback(payload[1], None, serial_data)
         # unknown ...
         elif (payload[0] == 0x35):
