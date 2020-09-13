@@ -15,6 +15,8 @@ class MmiEvents:
     ACC_12V_ON = 0xff
     BTN_PRESSED = 0x30
     BTN_RELEASED = 0x31
+    HEARTBEAT = 0x33
+    ACK = 0x72
     SMALL_WHEEL_ROTATED_RIGHT = 0x40
     SMALL_WHEEL_ROTATED_LEFT = 0x41
     BIG_WHEEL_ROTATED_RIGHT = 0x50
@@ -27,6 +29,8 @@ EVENT_DESCRIPTIONS = {
     MmiEvents.ACC_12V_ON: 'Power is turned on (12v)',
     MmiEvents.BTN_PRESSED: 'Button pressed',
     MmiEvents.BTN_RELEASED: 'Button released',
+    MmiEvents.HEARTBEAT: 'Heartbeat send',
+    MmiEvents.ACK: 'Acknowledgement send',
     MmiEvents.SMALL_WHEEL_ROTATED_RIGHT: 'Small wheel rotated right',
     MmiEvents.SMALL_WHEEL_ROTATED_LEFT: 'Small wheel rotated left',
     MmiEvents.BIG_WHEEL_ROTATED_RIGHT: 'Big wheel rotated right',
@@ -181,7 +185,7 @@ class MmiControl:
 
     def update(self, mmiCallback, receivedDataCallback=None):
         self._buffer = [0x00 for _ in range(self._bufferSize)]
-        payload = None
+        payload = []
         serial_data = []
         while (self._serial.in_waiting > 0 and self._readIndex < self._bufferSize):
             data = self._serial.read()
@@ -230,7 +234,8 @@ class MmiControl:
                     payloadSize = self._endIndex - self._startIndex
                     payload = [self._buffer[self._startIndex+i]
                                for i in range(payloadSize)]
-                    #self.serialEvent(payload, raw_data, mmiCallback)
+                    if(payloadSize > 0):
+                        self.serialEvent(payload, serial_data, mmiCallback)
 
                 self._startIndex = -1
                 self._endIndex = -1
@@ -241,12 +246,13 @@ class MmiControl:
                 self._endIndex = -1
                 self._readIndex = 0
 
-        # if serial data has been received signal the serial event
-        # we do this after the read serial data loop to make sure we capture all the data that has been received
-        if (len(serial_data) > 0):
-            # use a dymmy payload if no packet was detected
-            payload = [0x00, 0x00] if payload is None else payload
+        # if serial data has been received, but no packet was detected signal the serial event with a dummy payload
+        if (len(serial_data) > 0 and len(payload) == 0):
+            payload = [0x00, 0x00]
             self.serialEvent(payload, serial_data, mmiCallback)
+
+        if (len(serial_data) > 0 and not receivedDataCallback is None):
+            receivedDataCallback(serial_data)
 
         # Update button states
         for i in range(self._assignedButtonCount):
@@ -307,7 +313,13 @@ class MmiControl:
             # ... but it comes as return to the activation sequence 70 12
             # data package only has this byte ... however the user might want to use it as trigger:
             mmiCallback(payload[0], None, serial_data)
-        # a button has been pressed
+        elif (payload[0] == 0x33):
+            # not clear what this event is, but it seems like some sort of heartbeat
+            mmiCallback(payload[0], None, serial_data)
+        elif (payload[0] == 0x72):
+            # not clear what this event is, but it seems like some sort acknowledgement
+            mmiCallback(payload[0], None, serial_data)
+            # a button has been pressed
         elif ((payload[0] == 0x30 or payload[0] == 0x31) and length > 1):
             mmiCallback(payload[0], payload[1], serial_data)
             for i in range(self._assignedButtonCount):

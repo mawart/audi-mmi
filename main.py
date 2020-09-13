@@ -24,10 +24,14 @@ mmiControl2 = MmiControl(port=UART4, bufferSize=16,
 mmiControl = MmiControl(port=UART5, bufferSize=16,
                         buttonCount=17, wheelCount=2)
 
-
 def asHex(data):
     return [hex(d) for d in data]
 
+def mmiSerialDataReceived(serial_data):
+    serial_data_hex = asHex(serial_data)
+    print('data received', serial_data_hex)
+    # forward the received control data to the mmi unit
+    mmiControl2.write_raw(serial_data)
 
 def mmiEvent(event, payload, serial_data):
     serial_data_hex = asHex(serial_data)
@@ -55,10 +59,6 @@ def mmiEvent(event, payload, serial_data):
     else:
         print('unknown event', serial_data_hex)
 
-    # forward the received control data to the mmi unit
-    mmiControl2.write_raw(serial_data)
-
-
 mmiNavButton = mmiControl.createButton(MmiButtonIds.NAV)
 mmiSmallWheel = mmiControl.createWheel(MmiWheelIds.SMALL_WHEEL)
 mmiMediaLight = mmiControl.createLight(MmiLightIds.MEDIA)
@@ -68,7 +68,7 @@ acc_12v_on_timestamp = time.time()
 GPIO.output(PI_ON_OUTPUT_PIN, GPIO.HIGH)
 shutdown = False
 while not shutdown:
-    mmiControl.update(mmiEvent)
+    mmiControl.update(mmiEvent, mmiSerialDataReceived)
 
     if (GPIO.input(ACC_12V_INPUT_PIN)):
         # reset timestamp in acc is on
