@@ -9,7 +9,7 @@ Open command line and execute
 # Changes to Rapsberry Pi Config
 Open /boot/config.txt
 
-Add te following lines to enable uarts 3-5
+Add the following lines to enable uarts 3-5
 
     [audi-mmi]
     dtoverlay=uart3
@@ -30,3 +30,23 @@ https://bluewavestudio.io/community/showthread.php?tid=593&pid=7208&highlight=op
     Type=1
     Interface=/dev/ttyAMA0
     DoublePressSpeed=300
+
+# HifiBerry DAC+ ADC PRO
+Config change for Linux 5.4 (as used by OpenAuto Pro 10.0)
+
+https://www.hifiberry.com/blog/configuration-changes-in-linux-5-4/
+https://www.hifiberry.com/docs/software/configuring-linux-3-18-x/
+
+Open /boot/config.txt
+
+Add the following line to disable auto config of HifiBerry card
+
+    force_eeprom_read=0
+
+Remove the following line (if it exists) to disable onboard sound
+    
+    dtparam=audio=on
+
+Add the following line to apply the correct device tree overlay
+
+    dtoverlay=hifiberry-dacplusadcpro
