@@ -22,3 +22,11 @@ https://pimylifeup.com/raspberry-pi-visual-studio-code/
 
 # Remote Debugging
 https://www.linkedin.com/pulse/python-remote-debugging-visual-studio-code-raspberry-pi-mircea-dogaru/
+
+# Open Auto Config
+https://bluewavestudio.io/community/showthread.php?tid=593&pid=7208&highlight=openauto_controller_service#pid7208
+    
+    [Controller]
+    Type=1
+    Interface=/dev/ttyAMA0
+    DoublePressSpeed=300
