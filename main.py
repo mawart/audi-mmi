@@ -167,5 +167,5 @@ while not shutdown:
     # time.sleep(0.1)  # run every 100ms to reduce CPU load
 
 # initiate shutdown
-GPIO.cleanup()
 shut_down()
+GPIO.cleanup()

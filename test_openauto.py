@@ -18,7 +18,7 @@ UART5 = '/dev/ttyAMA3'  # RXD5 = GPIO 13, PIN 33, TXD5 = GPIO 12, PIN 32
 
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)  # Use "GPIO" pin numbering
-GPIO.setup(ACC_12V_INPUT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(ACC_12V_INPUT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(PI_ON_OUTPUT_PIN, GPIO.OUT)
 
 mmiControl2 = MmiControl(port=UART4, bufferSize=16,
@@ -84,8 +84,8 @@ acc_12v_on_timestamp = time.time()
 GPIO.output(PI_ON_OUTPUT_PIN, GPIO.HIGH)
 shutdown = False
 while not shutdown:
-    if (GPIO.input(ACC_12V_INPUT_PIN)):
-        # reset timestamp in acc is on
+    if (not GPIO.input(ACC_12V_INPUT_PIN)):
+        # reset timestamp in acc is on (active low)
         acc_12v_on_timestamp = time.time()
 
     if (time.time() - acc_12v_on_timestamp > 5):
