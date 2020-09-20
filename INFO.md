@@ -50,3 +50,15 @@ Remove the following line (if it exists) to disable onboard sound
 Add the following line to apply the correct device tree overlay
 
     dtoverlay=hifiberry-dacplusadcpro
+
+Set output level
+
+    $ amixer sset 'Master' 75%    
+
+# Run program at startup
+
+https://www.itechfy.com/tech/auto-run-python-program-on-raspberry-pi-startup/
+
+Add the following to the /etc/rc.local file
+
+    /usr/bin/python3 /home/pi/audi-mmi/main.py
