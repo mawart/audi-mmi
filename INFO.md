@@ -57,8 +57,8 @@ Set output level
 
 # Run program at startup
 
-https://www.itechfy.com/tech/auto-run-python-program-on-raspberry-pi-startup/
+https://learn.sparkfun.com/tutorials/how-to-run-a-raspberry-pi-program-on-startup/all
 
 Add the following to the /etc/rc.local file
 
-    /usr/bin/python3 /home/pi/audi-mmi/main.py
+    sudo bash -c '/usr/bin/python3 /home/pi/audi-mmi/main.py > /home/pi/audi-mmi/main.log 2>&1' &
