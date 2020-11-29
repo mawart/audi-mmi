@@ -6,7 +6,7 @@ import RPi.GPIO as GPIO
 import serial
 import struct
 
-breakpoint()  # force remote debugger to properly attach
+# breakpoint()  # force remote debugger to properly attach
 
 ACC_12V_INPUT_PIN = 10  # GPIO 10, PIN 19, HIGH = 12V ON, LOW = 12V OFF
 PI_ON_OUTPUT_PIN = 11  # GPIO 11, PIN 23, HIGH = Raspberry Pi ON, LOW = Raspberry Pi OFF
@@ -73,6 +73,8 @@ def update():
         else:
             print_debug('mmi unit data received', asHex(serial_data))
 
+        mmiControl.write_raw(serial_data)
+
 def asHex(data):
     return [hex(d) for d in data]
 
@@ -81,18 +83,32 @@ def print_debug(*argv):
     # print(argv)
     pass
 
-
-def mmiSerialDataReceived(serial_data):
+def mmiSerialDataReceived(serial_data, state):
     serial_data_hex = asHex(serial_data)
     print_debug('data received', serial_data_hex)
     # forward the received control data to the mmi unit
     # mmiControl2.write_raw(serial_data)
-    if (len(serial_data) > 4):
+    if (len(serial_data) >= 4):
         event = serial_data[2]
         payload = serial_data[3]
         if ((event == MmiEvents.BTN_PRESSED or event == MmiEvents.BTN_RELEASED) and payload == MmiButtonIds.NAV):
             print('Nav button event -> forwarded as Media button to mmi unit')
             mmiControl2.write([event, MmiButtonIds.MEDIA])
+            if event == MmiEvents.BTN_PRESSED:
+                state.open_auto_mode = not state.open_auto_mode
+            
+            if state.open_auto_mode:
+                print('Open Auto mode activated')
+            else:
+                print('Open Auto mode de-activated')            
+            return
+
+        if(state.open_auto_mode and 
+             ((event == MmiEvents.BTN_PRESSED or event == MmiEvents.BTN_RELEASED) or 
+              (event == MmiEvents.BIG_WHEEL_ROTATED_LEFT or event == MmiEvents.BIG_WHEEL_ROTATED_RIGHT) or
+              (event == MmiEvents.SMALL_WHEEL_ROTATED_LEFT or event == MmiEvents.SMALL_WHEEL_ROTATED_RIGHT))
+            ):
+            print('Open Auto mode active, not forwarding events to mmi unit')
             return
 
     print_debug('data forwarded to mmi unit')
@@ -138,14 +154,18 @@ def mmiEvent(event, payload, serial_data):
 # mmiSmallWheel = mmiControl.createWheel(MmiWheelIds.SMALL_WHEEL)
 # mmiMediaLight = mmiControl.createLight(MmiLightIds.MEDIA)
 
+class AppState:
+    open_auto_mode = False
 
 acc_12v_on_timestamp = time.time()
+state = AppState()
+
 # signal Pi has booted and is up and running
 GPIO.output(PI_ON_OUTPUT_PIN, GPIO.HIGH)
 shutdown = False
 while not shutdown:
-    mmiControl.update(mmiEvent, mmiSerialDataReceived)
-    update()
+    #mmiControl.update(mmiEvent, lambda serial_data: mmiSerialDataReceived(serial_data, state))
+    #update()
 
     if (not GPIO.input(ACC_12V_INPUT_PIN)):
         # reset timestamp in acc is on (active low)

@@ -55,6 +55,8 @@ Set output level
 
     $ amixer sset 'Master' 75%    
 
+https://support.hifiberry.com/hc/en-us/community/posts/360003853669-DAC-Volume-Control-How-are-people-handling-
+
 # Run program at startup
 
 https://www.itechfy.com/tech/auto-run-python-program-on-raspberry-pi-startup/
@@ -62,3 +64,15 @@ https://www.itechfy.com/tech/auto-run-python-program-on-raspberry-pi-startup/
 Add the following to the /etc/rc.local file
 
     /usr/bin/python3 /home/pi/audi-mmi/main.py
+
+https://www.tecmint.com/auto-execute-linux-scripts-during-reboot-or-startup/
+
+# Set level of HifiBerry DAC+ ADC PRO
+
+Currently (10-10-2020) storing and restoring alsa sound settings does not work on 
+the Raspbian release used by OpenAuto. To set the sound level to 75% at startup 
+(to prevent overdriving the input of the Audi TV-Tuner) we use a startup script with the following
+content:
+
+	amixer set Master 75%
+
