@@ -23,7 +23,7 @@ class MmiEvents:
     BIG_WHEEL_ROTATED_LEFT = 0x51
 
 
-EVENT_DESCRIPTIONS = {
+MMI_EVENT_DESCRIPTIONS = {
     MmiEvents.MMI_ACTIVATED: 'Triggered after the MMI was fully activated',
     MmiEvents.POWER_BTN_PRESSED: 'Power button is pressed',
     MmiEvents.ACC_12V_ON: 'Power is turned on (12v)',
@@ -118,6 +118,29 @@ WHEEL_DESCRIPTIONS = {
 }
 
 
+def writeToSerial(serial, data):
+    length = len(data)
+    # initialize message buffer
+    message = [0x00 for _ in range(length + 5)]
+    # set first two start bytes
+    message[0] = 0x10
+    message[1] = 0x02
+    # initialize checksum value (sum of start and end bytes)
+    checksum = 0x25
+    # fill message buffer with data and calculate checksum value
+    for i in range(length):
+        checksum += data[i]
+        message[2+i] = data[i]
+    # set last two end bytes
+    message[2+length] = 0x10
+    message[3+length] = 0x03
+    # add checksum value
+    message[4+length] = checksum & 0xFF  # truncate to one byte
+    # write message
+    serial.write(message)
+    serial.flush()
+
+
 class MmiControl:
     # public:
     def __init__(self, port, bufferSize, buttonCount, wheelCount):
@@ -183,75 +206,92 @@ class MmiControl:
         message = [0x70, 0x11]
         self.write(message)
 
-    def update(self, mmiCallback, receivedDataCallback=None):
+    def update(self, mmiCallback):
+        # reset buffer and arrays
         self._buffer = [0x00 for _ in range(self._bufferSize)]
         payload = []
         serial_data = []
+        # read all data from serial input buffer
         while (self._serial.in_waiting > 0 and self._readIndex < self._bufferSize):
-            data = self._serial.read()
-            data = struct.unpack('B', data)[0]
+            data = self._serial.read()  # read one byte
+            data = struct.unpack('B', data)[0]  # convert to number
             serial_data.append(data)
 
+            # push received byte on buffer
             self._buffer[self._readIndex] = data
             self._readIndex += 1
 
             # Detect packet start
             if (self._startIndex == -1):
                 if (data == 0x10):
+                    # first start byte received, ready to detect second start byte
                     self._startIndex = -2
                 elif (data == 0x06):
+                    # 0x06 (aknowledgement) received, reading is reset
                     self._readIndex = 0
                 continue
 
             elif (self._startIndex == -2):
                 if (data == 0x02):
+                    # first two start bytes received (0x10 0x02)
+                    # self._startIndex marks the start of the actual payload, normally self._startIndex should now be 2
                     self._startIndex = self._readIndex
                 else:
+                    # unexpected second byte received, packet start detection is reset
                     self._startIndex = -1
                 continue
 
             # Detect packet end
             if (self._endIndex == -1 and data == 0x10):
+                # first end byte is received, ready to detect second end byte
                 self._endIndex = -2
                 continue
 
             elif (self._endIndex == -2):
                 if (data == 0x03):
+                    # last two bytes received (0x10 0x03)
+                    # self._endIndex marks the end of the actual payload
                     self._endIndex = self._readIndex - 2
-                elif (data != 0x10):
+                elif (data != 0x10):  # consume any additional 0x10 bytes
+                    # unexpected second byte received, packet end detection is reset
                     self._endIndex = -1
                 continue
 
             # We have a packet ...
             if (self._endIndex > 0):
+                # byte after the packet end bytes is the original packet checksum values
                 remoteChecksum = data
                 localChecksum = 0
+                # calculate local packet checksum value by adding all recevied bytes (incl. start and end bytes)
                 for i in range(self._startIndex - 2, self._endIndex + 2):
                     localChecksum += self._buffer[i]
                 localChecksum = localChecksum & 0xFF  # truncate to one byte
+
+                # if checksum values match process the payload
                 if (localChecksum == remoteChecksum):
-                    self.ack()
+                    self.ack()  # send acknowledgement byte (0x06)
                     payloadSize = self._endIndex - self._startIndex
+                    # read payload form buffer
                     payload = [self._buffer[self._startIndex+i]
                                for i in range(payloadSize)]
                     if(payloadSize > 0):
+                        # if payload contains any bytes issue the serial event
                         self.serialEvent(payload, serial_data, mmiCallback)
 
+                # reset indices
                 self._startIndex = -1
                 self._endIndex = -1
                 self._readIndex = 0
 
             elif (self._readIndex >= self._bufferSize):
+                # if the number of received bytes exceed the buffer size reset reading
                 self._startIndex = -1
                 self._endIndex = -1
                 self._readIndex = 0
 
-        if (len(serial_data) > 0 and not receivedDataCallback is None):
-            receivedDataCallback(serial_data)
-
         # if serial data has been received, but no packet was detected signal the serial event with a dummy payload
         if (len(serial_data) > 0 and len(payload) == 0):
-            self.serialEvent([0x00, 0x00], serial_data, mmiCallback)
+            self.serialEvent([0x00], serial_data, mmiCallback)
 
         # Update button states
         for i in range(self._assignedButtonCount):
@@ -283,20 +323,7 @@ class MmiControl:
         self._serial.flush()
 
     def write(self, data):
-        length = len(data)
-        message = [0x00 for _ in range(length + 5)]
-        message[0] = 0x10
-        message[1] = 0x02
-        checksum = 0x25
-        for i in range(length):
-            checksum += data[i]
-            message[2+i] = data[i]
-
-        message[2+length] = 0x10
-        message[3+length] = 0x03
-        message[4+length] = checksum & 0xFF  # truncate to one byte
-        self._serial.write(message)
-        self._serial.flush()
+        writeToSerial(self._serial, data)
 
     def ack(self):
         self._serial.write(0x06)
@@ -304,12 +331,11 @@ class MmiControl:
 
     def serialEvent(self, payload, serial_data, mmiCallback):
         length = len(payload)
-        # power on or volume button pushed initially
         if (payload[0] == 0x79 and length > 1 and (payload[1] == 0x38 or payload[1] == 0xff)):
+            # power on or volume button pushed initially
             mmiCallback(payload[1], None, serial_data)
-        # unknown ...
         elif (payload[0] == 0x35):
-            # ... but it comes as return to the activation sequence 70 12
+            # unknown, but it comes as return to the activation sequence 70 12
             # data package only has this byte ... however the user might want to use it as trigger:
             mmiCallback(payload[0], None, serial_data)
         elif (payload[0] == 0x33):
@@ -318,23 +344,24 @@ class MmiControl:
         elif (payload[0] == 0x72):
             # not clear what this event is, but it seems like some sort acknowledgement
             mmiCallback(payload[0], None, serial_data)
-            # a button has been pressed
         elif ((payload[0] == 0x30 or payload[0] == 0x31) and length > 1):
+            # a button has been pressed
             mmiCallback(payload[0], payload[1], serial_data)
             for i in range(self._assignedButtonCount):
-                self._buttons[i].updateTrigger(payload[1], payload[0] == 0x30)
-        # the small wheel has been turned
+                self._buttons[i].updateTrigger(
+                    payload[1], payload[0] == 0x30)
         elif ((payload[0] == 0x40 or payload[0] == 0x41) and length > 1):
+            # the small wheel has been turned
             ammount = payload[1] * (1 if payload[0] == 0x40 else -1)
             mmiCallback(payload[0], payload[1], serial_data)
             for i in range(self._assignedWheelCount):
                 self._wheels[i].turn(0x40, ammount)
-        # the big wheel has been turned
         elif ((payload[0] == 0x50 or payload[0] == 0x51) and length > 1):
+            # the big wheel has been turned
             ammount = payload[1] * (1 if payload[0] == 0x50 else -1)
             mmiCallback(payload[0], payload[1], serial_data)
             for i in range(self._assignedWheelCount):
                 self._wheels[i].turn(0x50, ammount)
-        # unmapped event
         else:
+            # unmapped event
             mmiCallback(None, None, serial_data)
