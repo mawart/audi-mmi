@@ -2,9 +2,8 @@ import RPi.GPIO as GPIO
 import serial
 import struct
 import time
-from input import KBHit
 
-breakpoint()  # force remote debugger to properly attach
+# breakpoint()  # force remote debugger to properly attach
 
 
 MMI_PASS_THROUG_PIN = 7  # GPIO 7, PIN 26, HIGH = MMI signal pass through disabled - Raspberry Pi will act as intermediary, LOW = MMI signal pass through enabled
@@ -56,9 +55,6 @@ def read_raw(mySerial):
 def asHex(data):
     return [hex(d) for d in data]
 
-
-kb = KBHit()
-
 timestamp = time.time()
 pass_through = True
 exit = False
@@ -68,11 +64,11 @@ while not exit:
     if not pass_through:
         data = read_raw(mmiHeadUnit)
         write_raw(mmiCtrlUnit, data)
-        print('MMI head unit: ' + asHex(data))
+        print('MMI head unit: ' + ', '.join(asHex(data)))
 
         data = read_raw(mmiCtrlUnit)
         write_raw(mmiHeadUnit, data)
-        print('MMI control unit: ' + asHex(data))
+        print('MMI control unit: ' + ', '.join(asHex(data)))
     
     if (time.time() - timestamp > 5):
         pass_through = not pass_through

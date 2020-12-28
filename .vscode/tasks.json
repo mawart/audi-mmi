@@ -4,12 +4,12 @@
         {
             "label": "copyOnPi",
             "type": "shell",
-            "command": "scp ${workspaceFolder}/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi; scp -r ${workspaceFolder}/mmi/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi/mmi; scp -r ${workspaceFolder}/mmi/components/*.py ${config:sshUser}@${config:sshEndpoint}:~/audi-mmi/mmi/components"
+            "command": "scp ${workspaceFolder}/*.py ${config:sshUser}@${config:sshEndpoint}:~/workspace/audi-mmi; scp -r ${workspaceFolder}/mmi/*.py ${config:sshUser}@${config:sshEndpoint}:~/workspace/audi-mmi/mmi; scp -r ${workspaceFolder}/mmi/components/*.py ${config:sshUser}@${config:sshEndpoint}:~/workspace/audi-mmi/mmi/components"
         },
         {
             "label": "startOnPi",
             "type": "shell",
-            "command": "ssh ${config:sshUser}@${config:sshEndpoint} 'nohup python3 -m ptvsd --host 0.0.0.0 --port 5678 --wait ~/audi-mmi/${fileBasename} > /dev/null 2>&1 &'"
+            "command": "ssh ${config:sshUser}@${config:sshEndpoint} 'nohup python3 -m ptvsd --host 0.0.0.0 --port 5678 --wait ~/workspace/audi-mmi/${fileBasename} > /dev/null 2>&1 &'"
         },
         {
             "label": "wait",
