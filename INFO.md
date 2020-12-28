@@ -25,6 +25,10 @@ https://www.linkedin.com/pulse/python-remote-debugging-visual-studio-code-raspbe
 
 # Open Auto Config
 https://bluewavestudio.io/community/showthread.php?tid=593&pid=7208&highlight=openauto_controller_service#pid7208
+
+Open /home/pi/.openauto/config/openauto_controller_service.ini
+
+Change to the following:
     
     [Controller]
     Type=1
@@ -63,9 +67,9 @@ https://learn.sparkfun.com/tutorials/how-to-run-a-raspberry-pi-program-on-startu
 
 Add the following to the /etc/rc.local file
 
-    /usr/bin/python3 /home/pi/audi-mmi/main.py
+    /usr/bin/python3 /home/pi/worspace/audi-mmi/main.py
     or
-    sudo bash -c '/usr/bin/python3 /home/pi/audi-mmi/main.py > /home/pi/audi-mmi/main.log 2>&1' &
+    sudo bash -c '/usr/bin/python3 /home/pi/worspace/audi-mmi/main.py > /home/pi/worspace/audi-mmi/main.log 2>&1' &
 
 https://www.tecmint.com/auto-execute-linux-scripts-during-reboot-or-startup/
 
