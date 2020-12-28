@@ -16,12 +16,24 @@ Add the following lines to enable uarts 3-5
     dtoverlay=uart4
     dtoverlay=uart5
 
+Debugging config issues:
+https://blog.stabel.family/raspberry-pi-4-device-tree/
 
 # Tools
 https://pimylifeup.com/raspberry-pi-visual-studio-code/
 
 # Remote Debugging
 https://www.linkedin.com/pulse/python-remote-debugging-visual-studio-code-raspberry-pi-mircea-dogaru/
+
+# Correct Pyhton linting errors on GPIO lib
+https://stackoverflow.com/questions/56844378/pylint-no-member-issue-but-code-still-works-vscode
+
+Press: CTRL + Shift + P
+
+Click on "Preferences: Open Settings (JSON)"
+
+Add this line into JSON : "python.linting.pylintArgs": ["--generate-members"]
+
 
 # Open Auto Config
 https://bluewavestudio.io/community/showthread.php?tid=593&pid=7208&highlight=openauto_controller_service#pid7208

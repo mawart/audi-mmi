@@ -96,13 +96,13 @@ def toggleOpenAutoMode(appState):
         # disable MMI pass through, we will handle communication between MMI control unit and MMI head unit from here on
         setMMIPassThroughMode(False)
         # send NAV button press to OpenAuto application so it will start to listen to the MMI buttons
-        writeToSerial(openAutoSerial, [
-            MmiEvents.BTN_PRESSED, MmiButtonIds.NAV])
+        # writeToSerial(openAutoSerial, [
+        #     MmiEvents.BTN_PRESSED, MmiButtonIds.NAV])
     else:
         # we have left OpenAuto mode so re-enable MMI pass through
         setMMIPassThroughMode(True)
     if (appState.debug):
-        print('Entering' if appState.open_auto_mode else 'Leaving' + ' OpenAuto mode')
+        print(('Entering' if appState.open_auto_mode else 'Leaving') + ' OpenAuto mode')
 
 def logMmiBtnCtrlEvent(event, payload, serial_data):
     serial_data_hex = asHex(serial_data)
@@ -133,7 +133,7 @@ def mmiBtnCtrlEvent(appState, event, payload, serial_data):
         btnOrWheelEvent = (event == MmiEvents.BTN_PRESSED or event == MmiEvents.BTN_RELEASED or 
             event == MmiEvents.BIG_WHEEL_ROTATED_LEFT or event == MmiEvents.BIG_WHEEL_ROTATED_RIGHT or
             event == MmiEvents.SMALL_WHEEL_ROTATED_LEFT or event == MmiEvents.SMALL_WHEEL_ROTATED_RIGHT)
-        if (btnOrWheelEvent):    
+        if (btnOrWheelEvent and not mmiMediaButton.isPressed):    
             # forward all button and wheel events to OpenAuto application
             writeToSerial(openAutoSerial, [event, payload])
         else:

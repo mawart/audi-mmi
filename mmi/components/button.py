@@ -28,12 +28,12 @@ class Button:
       if (self._buttonState != Button.STATE_HELD):
         return False
       
-      intervalTime = ((self._updateTime - self._pressTime) - duration + (repeatTime * 0.5)) / repeatTime
-      if (intervalTime < 0):
-        intervalTime = 0
+      # intervalTime = ((self._updateTime - self._pressTime) - duration + (repeatTime * 0.5)) / repeatTime
+      # if (intervalTime < 0):
+      #   intervalTime = 0
       
-      delayedPressTime = duration + self._pressTime + repeatTime * intervalTime
-      return self._updateTime >= delayedPressTime and self._previousUpdateTime < delayedPressTime
+      delayedPressTime = duration + self._pressTime #+ repeatTime * intervalTime
+      return self._updateTime >= delayedPressTime #and self._previousUpdateTime < delayedPressTime
     
 
     def update(self):
