@@ -345,7 +345,7 @@ class MmiControl:
             # not clear what this event is, but it seems like some sort acknowledgement
             mmiCallback(payload[0], None, serial_data)
         elif ((payload[0] == 0x30 or payload[0] == 0x31) and length > 1):
-            # a button has been pressed
+            # a button has been pressed or released
             mmiCallback(payload[0], payload[1], serial_data)
             for i in range(self._assignedButtonCount):
                 self._buttons[i].updateTrigger(

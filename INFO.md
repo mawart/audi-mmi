@@ -94,3 +94,31 @@ content:
 
 	amixer set Master 75%
 
+# Communication
+
+PASSTHROUGH MODE ON:
+
+MMI Head Unit (Tx) --------------------------------------------------------------------------------> (Rx) MMI Button Control
+MMI Button Control (Tx) ---------------------------------------------------------------------------> (Rx) MMI Head Unit
+
+
+PASSTHROUGH MODE OFF:
+
+MMI Head Unit --------------------------------------------------------------------------------> MMI Button Control
+
+MMI Button Control ---- if Media Btn is pressed then -----------------------------------------> MMI Head Unit
+                            Enter Media mode
+                        else if Next Btn is pressed when in Media mode
+                            Enter OpenAuto mode
+                        else if Other Btn is pressed when in Media mode or OpenAuto mode
+                            Leave OpenAuto mode
+                            Leave Media mode
+
+MMI Button Control ---- if OpenAuto mode then ------------------------------------------------> MMI Head Unit
+                            Intercept all btn events from MMI Button Control
+                              and send them to OpenAuto serial inteface
+                            Forward all other data to MMI Head Unit
+                            For every intercepted event send next btn event to 
+                              MMI Head Unit to get a response from MMI Head Unit
+                        else 
+                            Forward all data to MMI Head Unit 
